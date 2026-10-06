@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Motion library — coins, steam, glows, confetti, ripple, log/toast entries
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+}
+
+/* --- splash --- */
+@keyframes splashRing{ to{ stroke-dashoffset:0; } }
+
+/* --- pulsing status dot --- */
+@keyframes pulseDot{ 0%,100%{ opacity:1; transform:scale(1);} 50%{ opacity:0.55; transform:scale(1.3);} }
+
+/* --- log entries sliding in --- */
+@keyframes logIn{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+/* --- toasts --- */
+.toast{ animation:toastIn 260ms cubic-bezier(.2,.9,.3,1.3), toastOut 260ms ease 3.2s forwards; }
+@keyframes toastIn{ from{ opacity:0; transform:translateX(30px);} to{ opacity:1; transform:translateX(0);} }
+@keyframes toastOut{ to{ opacity:0; transform:translateX(30px) scale(0.96); } }
+
+/* --- ripple buttons --- */
+.ripple{ }
+.ripple-circle{
+  position:absolute; border-radius:50%; background:rgba(255,255,255,0.45);
+  transform:scale(0); pointer-events:none; animation:rippleAnim 600ms ease-out forwards;
+}
+@keyframes rippleAnim{ to{ transform:scale(3); opacity:0; } }
+
+/* --- coin flight --- */
+.flying-coin{
+  position:absolute; width:34px; height:34px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #f0c169, #6b4226);
+  border:2px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:10px; font-weight:700; color:#1f1206;
+  box-shadow:0 6px 12px rgba(0,0,0,0.4);
+  animation:coinFly 650ms cubic-bezier(.3,.6,.4,1) forwards, coinSpin 650ms linear forwards;
+}
+@keyframes coinFly{
+  0%{ opacity:1; }
+  85%{ opacity:1; }
+  100%{ opacity:0; }
+}
+@keyframes coinSpin{ from{ transform:rotateY(0deg) scale(1);} to{ transform:rotateY(720deg) scale(0.5);} }
+
+/* --- rejected coin shake --- */
+@keyframes shakeX{ 0%,100%{ transform:translateX(0);} 20%{ transform:translateX(-8px);} 40%{ transform:translateX(8px);} 60%{ transform:translateX(-6px);} 80%{ transform:translateX(6px);} }
+.shake{ animation:shakeX 420ms ease; }
+
+/* --- coin button micro interaction handled via transform in style.css hover --- */
+
+/* --- steam --- */
+.steam-group.steaming{ opacity:1; animation:steamFade 2.2s ease-in-out infinite; }
+@keyframes steamFade{ 0%{ opacity:0;} 30%{ opacity:0.9;} 100%{ opacity:0;} }
+.steam{ transform-origin:center; }
+.steam.s1{ animation:steamRise 1.6s ease-in-out infinite; }
+.steam.s2{ animation:steamRise 1.6s ease-in-out infinite 0.3s; }
+.steam.s3{ animation:steamRise 1.6s ease-in-out infinite 0.6s; }
+@keyframes steamRise{
+  0%{ transform:translateY(6px) scaleY(0.7); opacity:0; }
+  40%{ opacity:0.9; }
+  100%{ transform:translateY(-14px) scaleY(1.1); opacity:0; }
+}
+
+/* --- cup slide + glow --- */
+.cup-wrap.sliding{ animation:cupSlide 700ms ease forwards; }
+@keyframes cupSlide{ 0%{ transform:translateY(0);} 50%{ transform:translateY(6px);} 100%{ transform:translateY(0);} }
+
+.machine-glow{ animation:none; }
+.machine-glow.glow-success, .machine-glow.glow-processing{ animation:glowPulse 1.2s ease-in-out infinite; }
+@keyframes glowPulse{ 0%,100%{ filter:brightness(1);} 50%{ filter:brightness(1.35);} }
+
+/* --- coffee card select pop --- */
+@keyframes cardPop{ 0%{ transform:scale(1);} 40%{ transform:scale(1.05);} 100%{ transform:scale(1);} }
+.coffee-card.pop{ animation:cardPop 320ms ease; }
+
+/* --- confetti --- */
+.confetti-piece{
+  position:fixed; top:-10px; width:8px; height:14px; opacity:0.95; z-index:970;
+  animation:confettiFall linear forwards;
+}
+@keyframes confettiFall{
+  to{ transform:translateY(110vh) rotate(540deg); opacity:0.2; }
+}
+
+/* --- SVG DFA node states --- */
+.dfa-node-circle{ transition:stroke 300ms ease, fill 300ms ease, filter 300ms ease; }
+.dfa-node.is-current .dfa-node-circle{ stroke:var(--state-current); filter:drop-shadow(0 0 10px var(--state-current)); }
+.dfa-node.is-accept .dfa-node-circle{ stroke:var(--state-accept); }
+.dfa-node.is-accept.is-current .dfa-node-circle{ filter:drop-shadow(0 0 12px var(--state-accept)); }
+.dfa-node.is-error.is-current .dfa-node-circle{ stroke:var(--state-error); filter:drop-shadow(0 0 12px var(--state-error)); }
+.dfa-node.is-visited .dfa-node-circle{ opacity:1; }
+.dfa-node.pulse .dfa-node-circle{ animation:nodePulse 700ms ease; }
+@keyframes nodePulse{ 0%{ r:24;} 50%{ r:30;} 100%{ r:24;} }
+
+.dfa-edge{ transition:stroke 300ms ease, opacity 300ms ease; }
+.dfa-edge.is-active{ stroke:var(--gold-bright); stroke-width:3; }
+.dfa-edge-flow{
+  stroke-dasharray:6 8; animation:edgeFlow 700ms linear infinite;
+}
+@keyframes edgeFlow{ to{ stroke-dashoffset:-28; } }
+
+.dfa-label{ pointer-events:none; }
+
+/* --- loading screen shimmer for lazy images --- */
+@keyframes shimmer{ 0%{ background-position:-200% 0;} 100%{ background-position:200% 0;} }
+.img-loading{ background:linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.03) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }

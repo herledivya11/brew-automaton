@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brew&Automaton — Smart Coffee Vending Machine (DFA)</title>
+<meta name="description" content="A commercial-grade coffee vending simulator whose every action is a Deterministic Finite Automaton transition." />
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- Styles -->
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/animation.css" />
+<link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+
+<!-- ============ SPLASH SCREEN ============ -->
+<div id="splash-screen" class="splash-screen" aria-hidden="true">
+  <div class="splash-inner">
+    <svg class="splash-logo" viewBox="0 0 120 120" width="96" height="96">
+      <circle cx="60" cy="60" r="46" fill="none" stroke="url(#splashGrad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289" class="splash-ring"/>
+      <text x="60" y="70" text-anchor="middle" class="splash-glyph">q₀</text>
+      <defs>
+        <linearGradient id="splashGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#d4a24c"/>
+          <stop offset="100%" stop-color="#8a5a2b"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <p class="splash-title">Brew<span>&amp;</span>Automaton</p>
+    <p class="splash-sub">Booting deterministic finite automaton…</p>
+  </div>
+</div>
+
+<!-- ============ TOAST CONTAINER ============ -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- ============ BACKGROUND PARTICLES ============ -->
+<canvas id="bg-particles" class="bg-particles"></canvas>
+
+<!-- ============ TOP NAVIGATION ============ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="brand">
+      <span class="brand-mark">Ω</span>
+      <div class="brand-text">
+        <span class="brand-title">Brew&amp;Automaton</span>
+        <span class="brand-sub">Smart Coffee Vending · DFA Engine</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar-center">
+    <div class="pill" id="pill-state" title="Current DFA State">
+      <i class="fa-solid fa-circle-nodes"></i>
+      <span class="pill-label">State</span>
+      <span class="pill-value mono" id="hud-state">q0</span>
+    </div>
+    <div class="pill" id="pill-status" title="Machine Status">
+      <i class="fa-solid fa-gear"></i>
+      <span class="pill-label">Status</span>
+      <span class="pill-value" id="hud-status">Idle</span>
+    </div>
+    <div class="pill" id="pill-amount" title="Current Amount">
+      <i class="fa-solid fa-coins"></i>
+      <span class="pill-label">Amount</span>
+      <span class="pill-value mono" id="hud-amount">₹0</span>
+    </div>
+  </div>
+
+  <div class="topbar-right">
+    <span class="clock mono" id="clock">--:--:--</span>
+    <button class="icon-btn" id="btn-fullscreen" title="Fullscreen (F)"><i class="fa-solid fa-expand"></i></button>
+    <button class="icon-btn" id="btn-mute" title="Mute sound (M)"><i class="fa-solid fa-volume-high"></i></button>
+    <button class="icon-btn" id="btn-theme" title="Toggle theme (D)"><i class="fa-solid fa-moon"></i></button>
+  </div>
+</header>
+
+<!-- ============ MAIN LAYOUT ============ -->
+<main class="layout">
+
+  <!-- ================= LEFT: COFFEE MACHINE ================= -->
+  <section class="panel machine-panel glass" aria-label="Coffee Vending Machine">
+    <div class="panel-header">
+      <h2><i class="fa-solid fa-mug-hot"></i> Vending Unit</h2>
+      <div class="status-chip" id="machine-status-chip"><span class="status-dot"></span><span id="machine-status-text">Idle</span></div>
+    </div>
+
+    <!-- Machine body -->
+    <div class="machine-body">
+      <div class="machine-screen">
+        <div class="screen-row">
+          <span class="screen-label">SELECTED</span>
+          <span class="screen-value" id="screen-coffee">— none —</span>
+        </div>
+        <div class="screen-row">
+          <span class="screen-label">INSERTED</span>
+          <span class="screen-value mono" id="screen-amount">₹0</span>
+        </div>
+        <div class="screen-row">
+          <span class="screen-label">REQUIRED</span>
+          <span class="screen-value mono" id="screen-price">₹0</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <span class="progress-text mono" id="progress-text">₹0 / ₹0</span>
+        </div>
+      </div>
+
+      <div class="dispense-stage">
+        <div class="coin-slot" id="coin-slot"><i class="fa-solid fa-money-bill-1"></i></div>
+        <div class="cup-wrap">
+          <svg id="cup-svg" viewBox="0 0 120 140" class="cup-svg">
+            <defs>
+              <clipPath id="cupClip"><path d="M28 30 L34 118 Q60 132 86 118 L92 30 Z"/></clipPath>
+              <linearGradient id="coffeeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#c48a4a"/>
+                <stop offset="100%" stop-color="#5a3216"/>
+              </linearGradient>
+            </defs>
+            <path d="M28 30 L34 118 Q60 132 86 118 L92 30 Z" fill="#241811" stroke="#d4a24c" stroke-width="2"/>
+            <rect id="coffee-fill" x="28" y="118" width="64" height="0" clip-path="url(#cupClip)" fill="url(#coffeeGrad)"/>
+            <path d="M22 30 Q60 42 98 30" fill="none" stroke="#d4a24c" stroke-width="3" stroke-linecap="round"/>
+            <path id="handle" d="M92 46 Q112 50 108 74 Q104 96 88 96" fill="none" stroke="#d4a24c" stroke-width="4" stroke-linecap="round"/>
+            <g id="steam-group" class="steam-group" opacity="0">
+              <path class="steam s1" d="M45 20 Q40 10 45 0" fill="none" stroke="#f3e6d2" stroke-width="3" stroke-linecap="round"/>
+              <path class="steam s2" d="M60 20 Q55 8 60 -4" fill="none" stroke="#f3e6d2" stroke-width="3" stroke-linecap="round"/>
+              <path class="steam s3" d="M75 20 Q70 10 75 0" fill="none" stroke="#f3e6d2" stroke-width="3" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+        <div class="machine-glow" id="machine-glow"></div>
+      </div>
+
+      <div class="coin-flight-layer" id="coin-flight-layer"></div>
+    </div>
+
+    <!-- Coffee menu -->
+    <div class="menu-header">
+      <h3>Choose your brew</h3>
+      <span class="hint">Tap a coffee, then insert coins</span>
+    </div>
+    <div class="coffee-grid" id="coffee-grid"><!-- injected by app.js --></div>
+
+    <!-- Coins & controls -->
+    <div class="coin-row">
+      <button class="coin-btn" data-coin="5" title="Insert a five rupee coin"><span class="coin-face">₹5</span></button>
+      <button class="coin-btn" data-coin="10" title="Insert a ten rupee coin"><span class="coin-face">₹10</span></button>
+      <button class="coin-btn" data-coin="20" title="Insert a twenty rupee coin"><span class="coin-face">₹20</span></button>
+      <button class="coin-btn invalid-coin" data-coin="invalid" title="Insert an unrecognised token (demo)"><span class="coin-face"><i class="fa-solid fa-ban"></i></span></button>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-primary ripple" id="btn-buy"><i class="fa-solid fa-mug-saucer"></i> Buy Coffee</button>
+      <button class="btn btn-ghost ripple" id="btn-reset"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="btn btn-ghost ripple" id="btn-demo"><i class="fa-solid fa-wand-magic-sparkles"></i> Demo Mode</button>
+      <button class="btn btn-ghost ripple" id="btn-demo-speed" title="Demo speed: Fast / Medium / Slow"><i class="fa-solid fa-gauge-high"></i> Speed: Medium</button>
+      <button class="btn btn-ghost ripple" id="btn-pause"><i class="fa-solid fa-pause"></i> Pause</button>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-panel">
+      <h3><i class="fa-solid fa-chart-simple"></i> Statistics</h3>
+      <div class="stats-grid" id="stats-grid"><!-- injected --></div>
+    </div>
+
+    <!-- Transaction history -->
+    <div class="history-panel">
+      <div class="panel-header small">
+        <h3><i class="fa-solid fa-receipt"></i> Transaction History</h3>
+        <div class="history-actions">
+          <button class="btn btn-tiny" id="btn-export-history"><i class="fa-solid fa-file-export"></i> Export</button>
+          <button class="btn btn-tiny" id="btn-clear-history"><i class="fa-solid fa-trash"></i> Clear</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="history-table">
+          <thead><tr><th>Time</th><th>Coffee</th><th>Paid</th><th>Change</th><th>Status</th></tr></thead>
+          <tbody id="history-body">
+            <tr class="empty-row"><td colspan="5">No transactions yet — insert a coin to begin.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RIGHT: DFA VISUALIZATION ================= -->
+  <section class="panel dfa-panel glass" aria-label="Deterministic Finite Automaton Visualization">
+    <div class="panel-header">
+      <h2><i class="fa-solid fa-diagram-project"></i> DFA Learning Panel</h2>
+      <div class="timeout-chip" id="timeout-chip" hidden><i class="fa-solid fa-hourglass-half"></i> <span id="timeout-count">30</span>s</div>
+    </div>
+
+    <!-- Formal definition -->
+    <div class="formal-def mono" id="formal-def">
+      <div class="formal-row"><span class="formal-key">M</span> = (Q, Σ, δ, q<sub>0</sub>, F)</div>
+      <div class="formal-row"><span class="formal-key">Q</span> = <span id="def-Q">{ q0 … q100, qAccept, qError, qDead }</span></div>
+      <div class="formal-row"><span class="formal-key">Σ</span> = <span id="def-sigma">{ 5, 10, 20, invalid, BUY, RESET }</span></div>
+      <div class="formal-row"><span class="formal-key">q₀</span> = <span id="def-q0">q0</span></div>
+      <div class="formal-row"><span class="formal-key">F</span> = <span id="def-F">{ qAccept }</span></div>
+      <div class="formal-row"><span class="formal-key">δ(state,in)</span> = <span id="def-delta" class="highlight-delta">—</span></div>
+    </div>
+
+    <!-- Diagram -->
+    <div class="dfa-diagram-wrap">
+      <svg id="dfa-svg" viewBox="0 0 900 460" class="dfa-svg" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <!-- Step controls -->
+    <div class="step-controls">
+      <button class="btn btn-tiny" id="btn-step-prev"><i class="fa-solid fa-backward-step"></i> Prev</button>
+      <span class="step-indicator mono" id="step-indicator">step 0 / 0</span>
+      <button class="btn btn-tiny" id="btn-step-next">Next <i class="fa-solid fa-forward-step"></i></button>
+      <button class="btn btn-tiny" id="btn-step-auto"><i class="fa-solid fa-play"></i> Auto Play</button>
+    </div>
+
+    <!-- Step explanation -->
+    <div class="step-explain" id="step-explain">
+      <div class="explain-row"><span>Current State</span><b id="ex-state">q0</b></div>
+      <div class="explain-row"><span>Input</span><b id="ex-input">—</b></div>
+      <div class="explain-row"><span>Next State</span><b id="ex-next">—</b></div>
+      <div class="explain-row"><span>Reason</span><b id="ex-reason">Machine is idle, waiting for a coin.</b></div>
+    </div>
+
+    <!-- Transition table -->
+    <div class="table-wrap transition-table-wrap">
+      <table class="transition-table" id="transition-table">
+        <thead><tr><th>State</th><th>₹5</th><th>₹10</th><th>₹20</th><th>BUY</th><th>RESET</th></tr></thead>
+        <tbody id="transition-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Transition log -->
+    <div class="log-panel">
+      <h3><i class="fa-solid fa-list-check"></i> Transition Log</h3>
+      <div class="log-list" id="log-list"></div>
+    </div>
+
+    <!-- How DFA works -->
+    <div class="how-panel">
+      <h3><i class="fa-solid fa-graduation-cap"></i> How DFA Works</h3>
+      <div id="how-content" class="how-content">
+        <p>Every button you press is one input symbol fed to the automaton. Watch the state glow move across the diagram above as the machine reads your input, one symbol at a time.</p>
+      </div>
+    </div>
+
+    <!-- Conventional vs DFA-Based Control -->
+    <div class="how-panel compare-panel">
+      <h3><i class="fa-solid fa-scale-balanced"></i> Conventional vs DFA-Based Control</h3>
+      <div class="how-content">
+        <p>The two approaches were compared on the same design requirements — coin handling, coffee
+        selection, balance tracking, and invalid-input rejection — to see where the DFA-based design
+        actually helps in practice rather than just on paper.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr><th>Aspect</th><th>Conventional (if/else)</th><th>DFA-Based Design</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Design basis</td><td>Scattered if/else checks on running balance</td><td>Explicit state + transition table</td></tr>
+            <tr><td>Determinism</td><td>Depends on implementation discipline</td><td>Guaranteed by construction</td></tr>
+            <tr><td>Verifiability</td><td>Hard to check every coin/button sequence</td><td>Every (state, input) pair is enumerable</td></tr>
+            <tr><td>Extending menu / prices</td><td>May require re-wiring conditionals</td><td>Only the BUY comparison changes</td></tr>
+            <tr><td>Debuggability</td><td>Behaviour inferred from symptoms</td><td>Current state is always known exactly</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="compare-chart-wrap">
+        <svg viewBox="0 0 560 250" class="compare-chart-svg" role="img"
+             aria-label="Qualitative comparison chart of conventional versus DFA-based control across determinism, verifiability, traceability, extensibility and debuggability">
+          <!-- gridlines + y labels -->
+          <g class="compare-grid" font-family="var(--font-mono)">
+            <line x1="40" y1="20" x2="40" y2="220" stroke="var(--glass-border)" stroke-width="1"/>
+            <line x1="40" y1="220" x2="550" y2="220" stroke="var(--glass-border)" stroke-width="1"/>
+            <g stroke="var(--glass-border)" stroke-width="1" stroke-dasharray="3 4">
+              <line x1="40" y1="180" x2="550" y2="180"/>
+              <line x1="40" y1="140" x2="550" y2="140"/>
+              <line x1="40" y1="100" x2="550" y2="100"/>
+              <line x1="40" y1="60"  x2="550" y2="60"/>
+              <line x1="40" y1="20"  x2="550" y2="20"/>
+            </g>
+            <g fill="var(--cream-dim)" font-size="10" text-anchor="end">
+              <text x="34" y="223">0</text>
+              <text x="34" y="183">1</text>
+              <text x="34" y="143">2</text>
+              <text x="34" y="103">3</text>
+              <text x="34" y="63">4</text>
+              <text x="34" y="23">5</text>
+            </g>
+          </g>
+
+          <!-- bars: conventional = grey, DFA-based = gold gradient -->
+          <defs>
+            <linearGradient id="cmpDfaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--gold-bright)"/>
+              <stop offset="100%" stop-color="var(--gold)"/>
+            </linearGradient>
+          </defs>
+          <g class="compare-bars">
+            <!-- Determinism: conv 2, dfa 5 -->
+            <rect x="56"  y="140" width="30" height="80"  fill="var(--grey)" rx="3"/>
+            <rect x="92"  y="20"  width="30" height="200" fill="url(#cmpDfaGrad)" rx="3"/>
+            <!-- Verifiability: conv 2, dfa 5 -->
+            <rect x="158" y="140" width="30" height="80"  fill="var(--grey)" rx="3"/>
+            <rect x="194" y="20"  width="30" height="200" fill="url(#cmpDfaGrad)" rx="3"/>
+            <!-- Traceability: conv 2, dfa 5 -->
+            <rect x="260" y="140" width="30" height="80"  fill="var(--grey)" rx="3"/>
+            <rect x="296" y="20"  width="30" height="200" fill="url(#cmpDfaGrad)" rx="3"/>
+            <!-- Extensibility: conv 2, dfa 4 -->
+            <rect x="362" y="140" width="30" height="80"  fill="var(--grey)" rx="3"/>
+            <rect x="398" y="60"  width="30" height="160" fill="url(#cmpDfaGrad)" rx="3"/>
+            <!-- Debuggability: conv 2, dfa 5 -->
+            <rect x="464" y="140" width="30" height="80"  fill="var(--grey)" rx="3"/>
+            <rect x="500" y="20"  width="30" height="200" fill="url(#cmpDfaGrad)" rx="3"/>
+          </g>
+
+          <!-- category labels -->
+          <g fill="var(--cream-dim)" font-size="9.5" text-anchor="middle">
+            <text x="91"  y="235">Determinism</text>
+            <text x="193" y="235">Verifiability</text>
+            <text x="295" y="235">Traceability</text>
+            <text x="397" y="235">Extensibility</text>
+            <text x="499" y="235">Debuggability</text>
+          </g>
+        </svg>
+        <div class="compare-chart-legend">
+          <span><i class="legend-dot legend-dot-conv"></i>Conventional / ad-hoc</span>
+          <span><i class="legend-dot legend-dot-dfa"></i>DFA-based</span>
+        </div>
+        <p class="compare-chart-caption">Figure — Qualitative comparison of conventional/ad-hoc and DFA-based control (scores 1–5).</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ KEYBOARD SHORTCUTS MODAL ============ -->
+<div class="modal-backdrop" id="shortcuts-modal" hidden>
+  <div class="modal glass">
+    <h3><i class="fa-solid fa-keyboard"></i> Keyboard Shortcuts</h3>
+    <ul class="shortcut-list">
+      <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> Select coffee</li>
+      <li><kbd>5</kbd> is shared — use number row for coffee, letters below for coins</li>
+      <li><kbd>Q</kbd> Insert ₹5 &nbsp; <kbd>W</kbd> Insert ₹10 &nbsp; <kbd>E</kbd> Insert ₹20</li>
+      <li><kbd>B</kbd> Buy &nbsp; <kbd>R</kbd> Reset &nbsp; <kbd>P</kbd> Pause/Resume</li>
+      <li><kbd>D</kbd> Dark mode &nbsp; <kbd>M</kbd> Mute &nbsp; <kbd>F</kbd> Fullscreen</li>
+      <li><kbd>?</kbd> Toggle this help</li>
+    </ul>
+    <button class="btn btn-primary" id="btn-close-shortcuts">Got it</button>
+  </div>
+</div>
+
+<!-- ============ AUDIO (public CDN sounds) ============ -->
+<audio id="snd-coin" preload="auto" src="https://actions.google.com/sounds/v1/cartoon/metal_thunk.ogg"></audio>
+<audio id="snd-click" preload="auto" src="https://actions.google.com/sounds/v1/ui/ui_tap_variant_01.ogg"></audio>
+<audio id="snd-dispense" preload="auto" src="https://actions.google.com/sounds/v1/water/water_pouring_into_glass.ogg"></audio>
+<audio id="snd-start" preload="auto" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+<audio id="snd-reset" preload="auto" src="https://actions.google.com/sounds/v1/switches/switch1.ogg"></audio>
+<audio id="snd-error" preload="auto" src="https://actions.google.com/sounds/v1/alarms/buzz_twice.ogg"></audio>
+<audio id="snd-success" preload="auto" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="snd-change" preload="auto" src="https://actions.google.com/sounds/v1/cartoon/metal_ring.ogg"></audio>
+
+<!-- ============ SCRIPTS ============ -->
+<script src="js/dfa.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/animation.js"></script>
+<script src="js/history.js"></script>
+<script src="js/timeout.js"></script>
+<script src="js/visualization.js"></script>
+<script src="js/vending.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
